@@ -1,155 +1,206 @@
-#pragma once
-#include <stdexcept>
-#include <string>
+#pragma once // Защита от повторного включения
 
+#include <stdexcept>  // Для обработки исключений (например, std::out_of_range)
+#include <string>     // Для преобразования чисел в строки при выводе ошибок
+
+// Узел списка
+template <typename T>
+struct ListNode {
+    T value;            // Значение узла
+    ListNode* prev;     // Указатель на предыдущий узел
+    ListNode* next;     // Указатель на следующий узел
+
+    // Конструктор узла
+    explicit ListNode(const T& val = T(), ListNode* prv = nullptr, ListNode* nxt = nullptr)
+        : value(val), prev(prv), next(nxt) {}
+};
+
+// Класс контейнера на основе двусвязного списка
 template <typename T>
 class ListContainer {
 private:
-    struct Node {
-        T data;
-        Node* next;
-        Node* prev;
-
-        Node(const T& value) : data(value), next(nullptr), prev(nullptr) {}
-    };
-
-    Node* head = nullptr;
-    Node* tail = nullptr;
-    size_t elements_count = 0;
+    ListNode<T>* head;  // Указатель на голову списка
+    ListNode<T>* tail;  // Указатель на хвост списка
+    size_t count;       // Количество элементов в списке
 
 public:
     // Конструктор по умолчанию
-    ListContainer() = default;
+    ListContainer() : head(nullptr), tail(nullptr), count(0) {}
+
+    // Деструктор
+    ~ListContainer() {
+        clear(); // Освобождаем память всех узлов
+    }
 
     // Конструктор копирования
-    ListContainer(const ListContainer& other) {
-        copy_nodes(other);
+    ListContainer(const ListContainer& other) : head(nullptr), tail(nullptr), count(0) {
+        for (ListNode<T>* current = other.head; current != nullptr; current = current->next) {
+            push_back(current->value); // Копируем элементы
+        }
     }
 
     // Оператор присваивания копированием
     ListContainer& operator=(const ListContainer& other) {
         if (this != &other) {
-            clear();
-            copy_nodes(other);
+            clear(); // Очищаем текущий список
+            for (ListNode<T>* current = other.head; current != nullptr; current = current->next) {
+                push_back(current->value); // Копируем элементы
+            }
         }
         return *this;
     }
 
     // Конструктор перемещения
-    ListContainer(ListContainer&& other) noexcept {
-        move_nodes(std::move(other));
+    ListContainer(ListContainer&& other) noexcept
+        : head(other.head), tail(other.tail), count(other.count) {
+        other.head = other.tail = nullptr;
+        other.count = 0;
     }
 
     // Оператор присваивания перемещением
     ListContainer& operator=(ListContainer&& other) noexcept {
         if (this != &other) {
-            clear();
-            move_nodes(std::move(other));
+            clear(); // Очищаем текущий список
+            head = other.head;
+            tail = other.tail;
+            count = other.count;
+            other.head = other.tail = nullptr;
+            other.count = 0;
         }
         return *this;
     }
 
-    // Деструктор
-    ~ListContainer() {
-        clear();
-    }
-
-    // Добавление в конец
+    // Метод добавления элемента в конец
     void push_back(const T& value) {
-        Node* new_node = new Node(value);
-        if (tail == nullptr) {
-            head = tail = new_node;
+        ListNode<T>* newNode = new ListNode<T>(value, tail, nullptr);
+        if (tail) {
+            tail->next = newNode; // Если список не пустой, связываем хвост с новым узлом
         } else {
-            tail->next = new_node;
-            new_node->prev = tail;
-            tail = new_node;
+            head = newNode; // Если список пустой, новый узел становится головой
         }
-        elements_count++;
+        tail = newNode; // Новый узел становится хвостом
+        ++count;
     }
 
-    // Добавление в начало
+    // Метод добавления элемента в начало
     void push_front(const T& value) {
-        Node* new_node = new Node(value);
-        if (head == nullptr) {
-            head = tail = new_node;
+        ListNode<T>* newNode = new ListNode<T>(value, nullptr, head);
+        if (head) {
+            head->prev = newNode; // Если список не пустой, связываем голову с новым узлом
         } else {
-            head->prev = new_node;
-            new_node->next = head;
-            head = new_node;
+            tail = newNode; // Если список пустой, новый узел становится хвостом
         }
-        elements_count++;
+        head = newNode; // Новый узел становится головой
+        ++count;
     }
 
-    // Удаление последнего элемента
+    // Метод удаления последнего элемента
     void pop_back() {
         if (empty()) {
-            throw std::out_of_range("Cannot pop_back from an empty list");
+            throw std::out_of_range("Cannot pop_back from an empty container");
         }
-        Node* to_delete = tail;
-        tail = tail->prev;
+        ListNode<T>* toDelete = tail;
+        tail = tail->prev; // Перемещаем хвост на предыдущий узел
         if (tail) {
-            tail->next = nullptr;
+            tail->next = nullptr; // Обнуляем указатель на следующий узел
         } else {
-            head = nullptr; // Список становится пустым
+            head = nullptr; // Если список становится пустым, обнуляем голову
         }
-        delete to_delete;
-        elements_count--;
+        delete toDelete;
+        --count;
     }
 
-    // Удаление первого элемента
+    // Метод удаления первого элемента
     void pop_front() {
         if (empty()) {
-            throw std::out_of_range("Cannot pop_front from an empty list");
+            throw std::out_of_range("Cannot pop_front from an empty container");
         }
-        Node* to_delete = head;
-        head = head->next;
+        ListNode<T>* toDelete = head;
+        head = head->next; // Перемещаем голову на следующий узел
         if (head) {
-            head->prev = nullptr;
+            head->prev = nullptr; // Обнуляем указатель на предыдущий узел
         } else {
-            tail = nullptr; // Список становится пустым
+            tail = nullptr; // Если список становится пустым, обнуляем хвост
         }
-        delete to_delete;
-        elements_count--;
+        delete toDelete;
+        --count;
     }
 
-    // Проверка на пустоту
+    // Метод вставки элемента по индексу
+    void insert(size_t index, const T& value) {
+        if (index > count) {
+            throw std::out_of_range("Insert index out of range");
+        }
+        if (index == 0) {
+            push_front(value); // Вставка в начало
+        } else if (index == count) {
+            push_back(value); // Вставка в конец
+        } else {
+            ListNode<T>* current = getNodeAt(index); // Находим узел по индексу
+            ListNode<T>* newNode = new ListNode<T>(value, current->prev, current);
+            current->prev->next = newNode;
+            current->prev = newNode;
+            ++count;
+        }
+    }
+
+    // Метод удаления элемента по индексу
+    void erase(size_t index) {
+        if (index >= count) {
+            throw std::out_of_range("Erase index out of range");
+        }
+        if (index == 0) {
+            pop_front(); // Удаление из начала
+        } else if (index == count - 1) {
+            pop_back(); // Удаление из конца
+        } else {
+            ListNode<T>* toDelete = getNodeAt(index); // Находим узел по индексу
+            toDelete->prev->next = toDelete->next;
+            toDelete->next->prev = toDelete->prev;
+            delete toDelete;
+            --count;
+        }
+    }
+
+    // Метод доступа к элементу по индексу
+    T& at(size_t index) {
+        ListNode<T>* node = getNodeAt(index);
+        return node->value;
+    }
+
+    // Константная версия метода at
+    const T& at(size_t index) const {
+        ListNode<T>* node = getNodeAt(index);
+        return node->value;
+    }
+
+    // Метод проверки, является ли список пустым
     bool empty() const {
-        return elements_count == 0;
+        return count == 0;
     }
 
-    // Количество элементов
+    // Метод получения количества элементов
     size_t size() const {
-        return elements_count;
+        return count;
+    }
+
+    // Метод очистки списка
+    void clear() {
+        while (!empty()) {
+            pop_front(); // Удаляем элементы с начала
+        }
     }
 
 private:
-    // Вспомогательный метод для глубокого копирования
-    void copy_nodes(const ListContainer& other) {
-        Node* current = other.head;
-        while (current != nullptr) {
-            push_back(current->data);
+    // Вспомогательный метод для получения узла по индексу
+    ListNode<T>* getNodeAt(size_t index) const {
+        if (index >= count) {
+            throw std::out_of_range("Index " + std::to_string(index) + " is out of bounds");
+        }
+        ListNode<T>* current = head;
+        for (size_t i = 0; i < index; ++i) {
             current = current->next;
         }
-    }
-
-    // Вспомогательный метод для перемещения ресурсов
-    void move_nodes(ListContainer&& other) noexcept {
-        head = other.head;
-        tail = other.tail;
-        elements_count = other.elements_count;
-        other.head = other.tail = nullptr;
-        other.elements_count = 0;
-    }
-
-    // Очистка списка
-    void clear() {
-        Node* current = head;
-        while (current != nullptr) {
-            Node* next = current->next;
-            delete current;
-            current = next;
-        }
-        head = tail = nullptr;
-        elements_count = 0;
+        return current;
     }
 };
