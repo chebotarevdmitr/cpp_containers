@@ -1,9 +1,12 @@
 find_package(GTest REQUIRED)
 
-# Тесты для vector
-add_executable(vector_tests vector_tests.cpp)
-target_link_libraries(vector_tests GTest::GTest GTest::Main)
+# Основной исполняемый файл для всех тестов
+add_executable(containers_tests
+    vector_tests.cpp
+    list_tests.cpp
+)
 
-# Тесты для list
-add_executable(list_tests list_tests.cpp)
-target_link_libraries(list_tests GTest::GTest GTest::Main)
+target_link_libraries(containers_tests
+    GTest::GTest 
+    GTest::Main
+)
