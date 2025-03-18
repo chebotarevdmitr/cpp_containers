@@ -1,12 +1,15 @@
-find_package(GTest REQUIRED          )# Поиск библиотеки GTest
+# Подключение Google Test
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
 
-# Тесты для vector (последовательный контейнер)
-add_executable(containers_tests       # Создание исполняемого файла
-    vector_tests.cpp                  # Добавление исходного файла
-    list_tests.cpp                    # Добавление исходного файла
+# Добавление исполняемого файла для тестов
+add_executable(containers_tests
+    vector_tests.cpp
+    list_tests.cpp
 )
-# Подключение библиотеки GTest
-target_link_libraries(containers_tests # Цель для подключения библиотек
-    GTest::GTest                       # Подключение библиотеки GTest
-    GTest::Main                         # Подключение библиотеки GTest
-)
+
+# Связывание с библиотекой Google Test
+target_link_libraries(containers_tests ${GTEST_BOTH_LIBRARIES} pthread)
+
+# Указание директории с заголовочными файлами
+target_include_directories(containers_tests PRIVATE ../include)
